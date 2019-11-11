@@ -305,6 +305,45 @@ class Graph(object):
                       DeprecationWarning)
         return deserialize_graph(data)
 
+    def export_to_graphml(self, filename):
+        """Export graph with nodes, edges and subgraphs to graphml"""
+        with open(filename, 'w') as file_handle:
+
+            file_handle.write("""<?xml version="1.0" encoding="UTF-8"?>
+                       <graphml xmlns="http://graphml.graphdrawing.org/xmlns"  
+                       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                       xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns
+                       http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">""")
+
+            self._graph_to_graphml(self, file_handle)
+
+            file_handle.write('</graphml>')
+
+    def _graph_to_graphml(self, graph, file_handle):
+        """Recursive method to export graph and all it's subgraphs to graphml"""
+        file_handle.write("""<graph id="%s" edgedefault="directed">""" % graph.name)
+
+        for node in graph.nodes:
+            file_handle.write("""<node id="%s">""" % node.identifier)
+
+            if isinstance(node, Graph):
+                self._graph_to_graphml(node, file_handle)
+
+            file_handle.write("""</node>""")
+
+        # second loop because edges have to come after nodes
+        for node in graph.nodes:
+            node_id = node.identifier
+
+            for output in node.outputs.values():
+                for connection in output.connections:
+                    target_node_id = connection.node.identifier
+                    edge_id = "%s-%s" % (node_id, target_node_id)
+
+                    file_handle.write("""<edge id="%s" source="%s" target="%s"/>""" % (edge_id, node_id, target_node_id))
+
+        file_handle.write("""</graph>""")
+
     def _sort_node(self, node, parent, level):
         """Sort the node into the correct level."""
         if node in parent.keys():

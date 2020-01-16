@@ -221,6 +221,9 @@ The code for these examples:
 Another simple example:
 [world_clock.py](examples/world_clock.py)!
 
+How to make use of nested subgraphs:
+[nested_graphs.py](examples/nested_graphs.py)!
+
 Using the command pattern with flowpipe successfully:
 [workflow_design_pattern.py](examples/workflow_design_pattern.py)!
 

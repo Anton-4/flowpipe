@@ -2,8 +2,10 @@ from __future__ import print_function
 
 import pytest
 
-import flowpipe.graph
 import time
+import re
+import os
+import flowpipe.graph
 
 from flowpipe.node import INode, Node
 from flowpipe.plug import InputPlug, OutputPlug
@@ -216,23 +218,10 @@ o in2<>      |     |    o in2<>      |     +--->o  in1.1<>           |
   [o] out2: null"""
 
 
-def test_string_representations_with_subgraphs(clear_default_graph):
+def test_string_representations_with_subgraphs(clear_default_graph, nested_graph):
     """For nested graphs, graph names are shown in header of nodes."""
-    main = Graph(name="main")
-    sub1 = Graph(name="sub1")
-    sub2 = Graph(name="sub2")
 
-    start = NodeForTesting(name='Start', graph=main)
-    n1 = NodeForTesting(name='Node1', graph=sub1)
-    n2 = NodeForTesting(name='Node2', graph=sub1)
-    end = NodeForTesting(name='End', graph=sub2)
-    start.outputs['out'] >> n1.inputs['in1']
-    start.outputs['out'] >> n2.inputs['in1']['0']
-    n1.outputs['out'] >> end.inputs['in1']['1']
-    n2.outputs['out']['0'] >> end.inputs['in1']['2']
-    n2.outputs['out']['0'] >> end.inputs['in2']
-
-    assert str(main) == '\
+    assert str(nested_graph) == '\
 +----main----+          +----sub1----+                  +--------sub2--------+\n\
 |   Start    |          |   Node1    |                  |        End         |\n\
 |------------|          |------------|                  |--------------------|\n\
@@ -251,6 +240,68 @@ o in2<>      |     |    o in2<>      |         +------->o  in1.1<>           |\n
                         |             out.0  o-----+                          \n\
                         |               out2 o                                \n\
                         +--------------------+                                '
+
+
+def test_graphml_representation(clear_default_graph, branching_graph):
+    file_name = "exported_graph.xml"
+    branching_graph.export_to_graphml(file_name)
+
+    with open(file_name, 'r') as file:
+        graphml_str = file.read()
+
+        # remove UUID's for easy matching
+        graphml_str_no_uuid = re.sub("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}", "", graphml_str)
+
+        expected_graphml = """\
+<?xml version="1.0" encoding="UTF-8"?>\
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" \
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" \
+xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns \
+http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">\
+<graph id="TestGraph" edgedefault="directed">\
+<node id="Start-"></node><node id="Node1-"></node>\
+<node id="Node2-"></node><node id="End-"></node>\
+<edge id="Start--Node1-" source="Start-" target="Node1-"/>\
+<edge id="Start--Node2-" source="Start-" target="Node2-"/>\
+<edge id="Node1--End-" source="Node1-" target="End-"/>\
+<edge id="Node2--End-" source="Node2-" target="End-"/>\
+</graph>\
+</graphml>"""
+
+        assert graphml_str_no_uuid == expected_graphml
+
+    os.remove(file_name)
+
+
+def test_nested_graphml_representation(clear_default_graph, nested_graph):
+    file_name = "exported_graph_nested.xml"
+    nested_graph.export_to_graphml(file_name)
+
+    with open(file_name, 'r') as file:
+        graphml_str = file.read()
+
+        # remove UUID's for easy matching
+        graphml_str_no_uuid = re.sub("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}", "", graphml_str)
+        with open("exported_graph_nested_2.xml", 'w') as tempfile:
+            tempfile.write(graphml_str_no_uuid)
+
+        expected_graphml = """\
+<?xml version="1.0" encoding="UTF-8"?>\
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" \
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" \
+xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns \
+http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">\
+<graph id="main" edgedefault="directed">\
+<node id="Start-"></node>\
+<edge id="Start--Node1-" source="Start-" target="Node1-"/>\
+<edge id="Start--Node2-" source="Start-" target="Node2-"/>\
+</graph>\
+</graphml>"""
+
+        assert graphml_str_no_uuid == expected_graphml
+
+    #os.remove(file_name)
+
 
 
 def test_nodes_can_be_added_to_graph(clear_default_graph):

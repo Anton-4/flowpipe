@@ -58,3 +58,42 @@ def branching_graph():
     n2.outputs['out'] >> end.inputs['in1']['2']
 
     yield graph
+
+
+@pytest.fixture
+def nested_graph():
+    """
+    +----main----+          +----sub1----+                  +--------sub2--------+
+    |   Start    |          |   Node1    |                  |        End         |
+    |------------|          |------------|                  |--------------------|
+    o in1<>      |     +--->o in1<>      |                  % in1                |
+    o in2<>      |     |    o in2<>      |         +------->o  in1.1<>           |
+    |        out o-----+    |        out o---------+   +--->o  in1.2<>           |
+    |       out2 o     |    |       out2 o             |--->o in2<>              |
+    +------------+     |    +------------+             |    |                out o
+                       |    +--------sub1--------+     |    |               out2 o
+                       |    |       Node2        |     |    +--------------------+
+                       |    |--------------------|     |                          
+                       |    % in1                |     |                          
+                       +--->o  in1.0<>           |     |                          
+                            o in2<>              |     |                          
+                            |                out %     |                          
+                            |             out.0  o-----+                          
+                            |               out2 o                                
+                            +--------------------+                                
+    """
+    main = Graph(name="main")
+    sub1 = Graph(name="sub1")
+    sub2 = Graph(name="sub2")
+
+    start = NodeForTesting(name='Start', graph=main)
+    n1 = NodeForTesting(name='Node1', graph=sub1)
+    n2 = NodeForTesting(name='Node2', graph=sub1)
+    end = NodeForTesting(name='End', graph=sub2)
+    start.outputs['out'] >> n1.inputs['in1']
+    start.outputs['out'] >> n2.inputs['in1']['0']
+    n1.outputs['out'] >> end.inputs['in1']['1']
+    n2.outputs['out']['0'] >> end.inputs['in1']['2']
+    n2.outputs['out']['0'] >> end.inputs['in2']
+
+    yield main

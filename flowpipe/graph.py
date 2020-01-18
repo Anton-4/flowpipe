@@ -389,11 +389,11 @@ class Graph(object):
         """Export graph with nodes, edges and subgraphs to graphml"""
         with open(filename, 'w') as file_handle:
 
-            file_handle.write("""<?xml version="1.0" encoding="UTF-8"?>
-                       <graphml xmlns="http://graphml.graphdrawing.org/xmlns"  
-                       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                       xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns
-                       http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">""")
+            file_handle.write("""<?xml version="1.0" encoding="UTF-8"?>"""
+                              """<graphml xmlns="http://graphml.graphdrawing.org/xmlns" """
+                              """xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" """
+                              """xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns """
+                              """http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">""")
 
             self._graph_to_graphml(self, file_handle)
 
@@ -403,13 +403,15 @@ class Graph(object):
         """Recursive method to export graph and all it's subgraphs to graphml"""
         file_handle.write("""<graph id="%s" edgedefault="directed">""" % graph.name)
 
-        for node in graph.nodes:
-            file_handle.write("""<node id="%s">""" % node.identifier)
-
-            if isinstance(node, Graph):
-                self._graph_to_graphml(node, file_handle)
-
-            file_handle.write("""</node>""")
+        for node in graph.evaluation_sequence:
+            print(node.name)
+            print(node.graph.name)
+            print("+++")
+            if node.graph.name != graph.name:
+                self._graph_to_graphml(node.graph, file_handle)
+            else:
+                file_handle.write("""<node id="%s">""" % node.identifier)
+                file_handle.write("""</node>""")
 
         # second loop because edges have to come after nodes
         for node in graph.nodes:
